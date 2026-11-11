@@ -1,0 +1,8 @@
+node_modules
+.next
+runs
+.env*.local
+next-env.d.ts
+*.tsbuildinfo
+video/node_modules
+video/out
