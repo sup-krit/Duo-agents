@@ -1,6 +1,10 @@
-# Agent Duo v0.3
+# Agent Duo v0.4 (Rust)
 
-คุยกับทีม AI แบบ CLI: เลือก **lead (orchestrator)** จะเป็น Claude, Codex หรือ AI เจ้าอื่นก็ได้ lead แบ่งงานให้ทีมตามที่คุณกำหนดว่า AI ตัวไหนทำอะไร agent ทุกตัว **แตก sub-agent ของตัวเองได้** คุณเห็นผังว่าใครแตกใครออกมา และดู **timeline** ได้ว่าใครทำงานช่วงไหน รอใคร ส่งข้อความหากันเมื่อไหร่
+คุยกับทีม AI: เลือก **lead (orchestrator)** จะเป็น Claude, Codex หรือ AI เจ้าอื่นก็ได้ lead แบ่งงานให้ทีมตามที่คุณกำหนด agent ทุกตัว **แตก sub-agent ของตัวเองได้** คุณเห็นผังว่าใครแตกใครออกมา และดู **timeline** ได้ว่าใครทำงานช่วงไหน รอใคร ส่งข้อความหากันเมื่อไหร่
+
+v0.4 คือเวอร์ชัน TypeScript/Next.js ที่เขียนใหม่ด้วย Rust มี 2 แบบ ใช้ engine ตัวเดียวกัน ไม่ต้องมี Node บนเครื่อง
+- **แอป desktop (Tauri)** สำหรับ Windows และ macOS: ติดตั้งแล้วเปิดเป็นหน้าต่างของตัวเอง
+- **`agent-duo` command-line** ไฟล์เดียว: ดับเบิลคลิกแล้วเปิดหน้าเว็บในเบราว์เซอร์
 
 ```
 You ─▶ lead (Claude / Codex / DeepSeek …) ── propose_split ──▶ you approve
@@ -10,172 +14,166 @@ You ─▶ lead (Claude / Codex / DeepSeek …) ── propose_split ──▶ y
                     └─ claude#3    review   (after #1, #2)
 ```
 
-## มีอะไรใหม่ใน v0.3
+## ติดตั้งแอป desktop
 
-- **ใครทำอะไร**: เขียนเองได้ว่า AI แต่ละตัวทำอะไร มีปุ่มลัด build / tests / review / docs / research และ lead ต้องแบ่งงานตามนี้
-- **โหมด**: auto · accept edits · plan
-- **ไฟล์สำคัญ**: กำหนด pattern ของไฟล์ที่ต้องได้รับอนุมัติก่อนแก้
-- **AI เจ้าอื่น**: DeepSeek, Kimi, GLM, OpenRouter, Ollama, LM Studio หรือกรอกเอง เข้าทีมหรือเป็น lead ได้ key เก็บบนเครื่องเท่านั้น
-- **skills และ subagents**: ใช้ skill/agent ของ repo เป้าหมาย, `~/.claude`, `~/.codex` และโฟลเดอร์ `shared/` ของ agent-duo ได้ทั้ง Claude และ Codex
-- แก้บั๊ก: บน Windows, Claude Code รันคำสั่งผ่านเครื่องมือ `PowerShell` ซึ่งก่อนหน้านี้ถูกปฏิเสธเสมอ
+ดาวน์โหลดจากหน้า Releases
+- **Windows**: `Agent Duo_x.y.z_x64-setup.exe` (หรือ `.msi`) ต้องมี WebView2 ซึ่งมีมากับ Windows 10/11 อยู่แล้ว
+- **macOS 11+**: `Agent Duo_x.y.z_universal.dmg` (Apple Silicon และ Intel) ลากไปไว้ใน Applications
+  - ถ้ายังไม่ได้ sign แอป macOS จะบอกว่าเปิดไม่ได้: คลิกขวาที่แอป → Open หรือรัน `xattr -dr com.apple.quarantine "/Applications/Agent Duo.app"`
+  - แอปที่เปิดจาก Finder ได้ PATH สั้นมาก agent-duo จึงอ่าน PATH จาก login shell ของคุณ (`$SHELL -ilc`) และเพิ่ม `~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin` ให้ เพื่อหา `claude`, `codex`, `node` และ `git`
+  - session อยู่ที่ `~/Library/Application Support/agent-duo/runs`
 
-## เริ่มใช้
+แอปเปิด engine บน `127.0.0.1:47300` (ถ้าไม่ว่างจะหาพอร์ตอื่น) แล้วแสดงหน้าเดียวกับเวอร์ชันเบราว์เซอร์ในหน้าต่างของแอป ปิดหน้าต่างเพื่อหยุด agent ทุกตัว ตัวแอปเองเป็น `bridge` / `hook` ให้ agent เรียกด้วย
 
-```bash
-npm install
-npm run dev        # http://localhost:3000
+## เริ่มใช้ (command-line)
+
+1. ดับเบิลคลิก `agent-duo.exe` หน้าต่าง console บอก URL และเปิดเบราว์เซอร์ให้เอง ปิดหน้าต่างนั้นเพื่อหยุด
+2. เลือก **mock (no keys)** เพื่อลองดู flow ทั้งหมดทันที (ไม่แก้ไฟล์ใด ๆ) หรือ **real agents** แล้วใส่ path ของโฟลเดอร์โปรเจกต์
+3. ถ้าจะใช้ agent จริง รัน `agent-duo doctor` ก่อน เพื่อเช็กว่า `claude`, `codex` และ `git` ติดตั้งและ login แล้ว
+
+```
+agent-duo                 เปิดหน้าเว็บ (พอร์ต 3000 ถ้าไม่ว่างจะหาพอร์ตอื่นให้)
+agent-duo --port 4000     เลือกพอร์ตเอง
+agent-duo --no-open       ไม่ต้องเปิดเบราว์เซอร์
+agent-duo doctor          เช็ก claude / codex / git และการ login
+agent-duo bridge …        MCP server ของ agent แต่ละตัว (agent เรียกเอง ไม่ต้องรันมือ)
+agent-duo hook …          ด่านอนุมัติของ Claude Code (agent เรียกเอง)
 ```
 
-- **mock (no keys)**: agent จำลองเดินตาม script ดู flow ทั้งหมดได้ทันที (เสนอการแบ่งงาน, แตก sub, ส่งข้อความ, merge) ไม่แก้ไฟล์ใด ๆ
-- **real agents**: ใส่ path ของโฟลเดอร์โปรเจกต์ (เป็น git หรือไม่ก็ได้) ต้องมีอย่างน้อยหนึ่งอย่าง
-  - Claude: login Claude Code ไว้บนเครื่อง หรือตั้ง `ANTHROPIC_API_KEY`
-  - Codex: `codex login` หรือตั้ง `OPENAI_API_KEY` (CLI ติดมากับ `@openai/codex-sdk`)
-  - AI เจ้าอื่น: เพิ่มในส่วน "Other AI" ของฟอร์ม (ดูด้านล่าง)
-  - เปิดเว็บผ่าน origin ที่ agent เรียกกลับได้ เช่น `http://localhost:3000`
+ต้องมีสำหรับ real agents (อย่างน้อยหนึ่งอย่าง):
+- **Claude**: Claude Code ติดตั้งแล้วและ login (`claude`) หรือตั้ง `ANTHROPIC_API_KEY`
+- **Codex**: `npm i -g @openai/codex` แล้ว `codex login` หรือตั้ง `OPENAI_API_KEY` (agent-duo หา `codex.exe` ตัวจริงที่อยู่หลัง `codex.cmd` ให้เอง)
+- **git**: ถ้าโฟลเดอร์เป็น git repo
 
 ## ตั้งค่า session (หน้าแรก)
 
 ### ใครทำอะไร
 
-ในส่วน "Team it can hand work to" ทุก AI ที่ติ๊กไว้มีช่องให้เขียนเองว่าทำอะไร และมีปุ่มลัด
-
-| ปุ่ม | ข้อความที่เติมให้ (แก้ต่อได้) |
-|---|---|
-| build | write and change the code |
-| tests | write and run the tests |
-| review | review only: read the changes and report problems, do not edit files |
-| docs | write and update documentation |
-| research | read the code and find answers, do not edit files |
-
-- lead ต้องแบ่งงานตามนี้อย่างเคร่งครัด ถ้าไม่มี AI ตัวไหนเหมาะกับงานชิ้นหนึ่ง lead ต้องบอกในแผนแทนการฝืนแจก ช่องว่างหมายถึงให้ lead เลือกเอง
-- agent แต่ละตัวได้รับคำสั่งนี้ด้วย และถือเหนือกว่างานที่ lead แจกถ้าขัดกัน
-- ถ้าในช่องมี `review only`, `do not edit`, `read-only`, `ห้ามแก้` หรือ `อ่านอย่างเดียว` ระบบจะ**บังคับ**ให้ AI ตัวนั้นอ่านได้อย่างเดียว
-- นอกจากนั้นระบบตรวจไม่ได้ว่างานตรงบทบาทไหม ด่านจริงคือตอนคุณอนุมัติแผนการแบ่งงาน
-- ค่าเริ่มต้นคือ Codex = build, Claude = review ฟอร์มจำค่าไว้ให้ครั้งหน้า
+ทุก AI ที่ติ๊กเข้าทีมมีช่องให้เขียนว่าทำอะไร และมีปุ่มลัด build / tests / review / docs / research
+- lead ต้องแบ่งงานตามนี้อย่างเคร่งครัด ช่องว่างหมายถึงให้ lead เลือกเอง
+- ถ้าในช่องมี `review only`, `do not edit`, `read-only`, `ห้ามแก้` หรือ `อ่านอย่างเดียว` ระบบ**บังคับ**ให้ AI ตัวนั้นอ่านได้อย่างเดียว
 
 ### โหมด
 
-เลือกตอนเริ่ม สลับได้ด้วย `/mode` หรือกดที่ chip "mode" ด้านบนหน้า session
+เลือกตอนเริ่ม สลับได้ด้วย `/mode` หรือกดที่ chip "mode"
 
-| โหมด | Claude (และ AI ที่รันบน Claude Code) | Codex (และ AI ที่รันบน Codex) |
+| โหมด | Claude | Codex |
 |---|---|---|
 | **auto** | แก้ไฟล์และรันคำสั่งเอง | แก้ไฟล์และรันคำสั่งเอง |
-| **accept edits** | แก้ไฟล์เอง แต่ทุกคำสั่ง shell ต้องรอคุณกด allow | อ่านได้อย่างเดียว* |
+| **accept edits** | แก้ไฟล์เอง ทุกคำสั่ง shell รอคุณกด allow | อ่านได้อย่างเดียว (`codex exec` ถามกลางคำสั่งไม่ได้) |
 | **plan** | อ่านได้อย่างเดียว | อ่านได้อย่างเดียว |
 
-- **plan**: lead สำรวจแล้วเสนอแผนละเอียดให้คุณอนุมัติก่อน ขั้นนี้บังคับแม้ปิด "starting the split" ไว้ พออนุมัติแล้วจะสลับไปโหมดที่เลือกไว้ (auto หรือ accept edits) และทีมเริ่มทำงาน
-- \* Codex หยุดถามกลางคำสั่งไม่ได้ (`codex exec` ไม่มีขั้นอนุมัติ และ Codex 0.167 เลิกรองรับ `untrusted` แล้ว) จึงอ่านได้อย่างเดียวในโหมดนี้ lead จะส่งงานแก้ไฟล์ให้ฝั่ง Claude แทน
+plan: lead เสนอแผนละเอียดให้อนุมัติก่อน พออนุมัติแล้วสลับไปโหมดที่เลือกไว้
 
 ### ไฟล์สำคัญ (Protected files)
 
-ใส่ pattern ทีละบรรทัด เช่น `.env*`, `db/migrations/**`, `src/payment/**` pattern ที่ไม่มี `/` ใช้ได้ทุกโฟลเดอร์ ถ้าไม่ใส่ก็แก้ได้ทุกไฟล์ ฟอร์มจำค่าไว้แยกตามโฟลเดอร์
-
-- Claude ถูกดักก่อนแก้ไฟล์ที่ตรง pattern และต้องรอคุณอนุมัติ
-- **ด่านสุดท้ายตอน merge**: ไฟล์สำคัญที่ถูกแก้แต่คุณยังไม่อนุมัติ (เช่น Codex แก้ หรือแก้ผ่านคำสั่ง shell) จะถูกถามทีละไฟล์ ถ้าตอบ no ไฟล์นั้นถูกคืนค่า ส่วนไฟล์อื่น merge ตามปกติ
-- ถ้ามีไฟล์สำคัญ จะเลือก "edit this folder directly" ไม่ได้ (เพราะไม่มีขั้น merge ให้กัน) ระบบจะใช้ branch หรือสำเนาแทน
+ใส่ pattern ทีละบรรทัด เช่น `.env*`, `db/migrations/**` (pattern ที่ไม่มี `/` ใช้ได้ทุกโฟลเดอร์)
+- Claude ถูกดักก่อนแก้ไฟล์ที่ตรง pattern และรอคุณอนุมัติ
+- ตอน merge ไฟล์สำคัญที่ถูกแก้แต่ยังไม่อนุมัติจะถูกถามทีละไฟล์ ตอบ no แล้วไฟล์ถูกคืนค่า
+- ถ้ามีไฟล์สำคัญ จะไม่ให้แก้โฟลเดอร์โดยตรง (ใช้ branch หรือสำเนาแทน)
 
 ### AI เจ้าอื่น (Other AI)
 
-อยู่ในฟอร์มเมื่อเลือก real agents กด `+ DeepSeek`, `+ Ollama (local)` ฯลฯ หรือ `+ other…` แล้วกรอก key, model และกด **test connection** AI ที่เพิ่มแล้วติ๊กเข้าทีมหรือเลือกเป็น lead ได้ ทุกเจ้ารันบน Claude Code หรือ Codex จึงได้เครื่องมือ, sub-agent, skills, โหมด และการป้องกันไฟล์สำคัญครบ
-
-| รูปแบบ API | รันบน | ตัวอย่าง |
-|---|---|---|
-| Anthropic | Claude Code (`ANTHROPIC_BASE_URL`) | DeepSeek `https://api.deepseek.com/anthropic`, Kimi, GLM, OpenRouter, Ollama |
-| OpenAI **Responses** | Codex (`model_providers`) | LM Studio `http://localhost:1234/v1` |
-
-- Codex 0.167 ไม่รองรับ Chat Completions แล้ว เจ้าที่มีแค่ Chat Completions จึงต้องใช้ endpoint แบบ Anthropic ถ้ามี
-- ชื่อ model ใน preset เป็นแค่ตัวอย่าง ตรวจกับรายชื่อ model ของเจ้านั้นก่อน
-- ค่าใช้จ่ายคิดจากราคาต่อ 1M token ที่กรอกไว้ ถ้าไม่กรอกจะนับเป็น $0 (ยังเห็นจำนวน token)
-
-**key อยู่บนเครื่องเท่านั้น**
-- เก็บที่ `~/.agent-duo/providers.json` (เปลี่ยนที่ได้ด้วย env `DUO_HOME`) นอกโฟลเดอร์โปรเจกต์
-- หน้าเว็บเห็นแค่ `sk-…abcd` key ไม่ถูกเขียนลง `runs/`, `events.jsonl` หรือ log
-- ถ้าเปลี่ยน base URL ต้องใส่ key ใหม่ key เดิมจะไม่ถูกส่งไปที่ URL ใหม่
-- API ที่จัดการ key รับเฉพาะคำขอ JSON จาก origin เดียวกัน
+DeepSeek, Kimi, GLM, OpenRouter, Ollama (รูปแบบ Anthropic รันบน Claude Code) หรือ LM Studio (OpenAI Responses รันบน Codex) กด **test connection** ได้ key เก็บที่ `~/.agent-duo/providers.json` (หรือ `DUO_HOME`) เท่านั้น หน้าเว็บเห็นแค่ `sk-…abcd` และ key ไม่ถูกเขียนลง log
 
 ## ใช้งานในหน้า session
 
 | พิมพ์ | ผล |
 |---|---|
 | ข้อความธรรมดา | ส่งให้ lead |
-| `@codex#1 ข้อความ` | ส่งให้ agent ตัวเดียว (หรือกดที่ agent ในผัง แล้วพิมพ์ได้เลย) |
-| `y` / `n` / `e <สิ่งที่อยากแก้>` | ตอบการขออนุมัติล่าสุด (หรือกดปุ่มในกล่อง) |
-| `/orc codex` · `/orc claude` · `/orc deepseek` | สลับ lead (ทำได้ตอน lead ไม่ได้อยู่กลาง turn) |
+| `@codex#1 ข้อความ` | ส่งให้ agent ตัวเดียว (หรือกดที่ agent ในผัง) |
+| `y` / `n` / `e <สิ่งที่อยากแก้>` | ตอบการขออนุมัติล่าสุด |
+| `/orc codex` · `/orc claude` | สลับ lead |
 | `/mode auto` · `/mode edits` · `/mode plan` | สลับโหมด |
-| `/kill codex#1.b` | หยุด agent ตัวนั้นพร้อม sub ของมัน |
+| `/kill codex#1.b` | หยุด agent ตัวนั้นพร้อม sub (ฆ่าทั้ง process tree ด้วย job object) |
 | `/budget 10` · `/merge` · `/stop` · `/help` | |
 
-กล่องขออนุมัติมี 5 แบบ: แผนการแบ่งงาน (split), sub-agent, merge, คำสั่ง shell (accept edits) และไฟล์สำคัญ
+**การแจ้งเตือน** (เมื่อหน้าต่างไม่ได้อยู่ข้างหน้า): มีเรื่องรออนุมัติ, lead ทำเสร็จ, session หยุดเพราะเกินงบหรือผิดพลาด, agent ล้มเหลว และ agent ส่งข้อความถึงคุณ
+- แอป desktop: แจ้งเตือนของระบบ พร้อมกระพริบ taskbar / เด้งไอคอนใน Dock กลับมาที่หน้าต่างแล้วจะเปิด session ที่แจ้งให้เอง (แจ้งได้ทุก session ที่กำลังทำงาน) macOS จะถามขออนุญาตครั้งแรก
+- เวอร์ชันเบราว์เซอร์: ใช้ Web Notification ของเบราว์เซอร์ ถามอนุญาตตอนกดเริ่ม session หรือส่งข้อความครั้งแรก แจ้งเฉพาะ session ที่เปิดแท็บค้างไว้
+- ปิดแอป/แท็บแล้วจะไม่มีการแจ้งเตือน (agent หยุดไปพร้อมกัน)
 
-แท็บ **timeline** แสดงทุก agent ตามเวลา: แท่งทึบคือช่วงทำงาน ลายเฉียงคือช่วงรอ เส้นประคือจุดที่แตก sub เส้นม่วงคือข้อความระหว่าง agent และขีดแดงคือ step ที่ล้มเหลว การ์ดด้านบนบอกจำนวน agent ที่ทำงานพร้อมกันโดยเฉลี่ย เวลาที่ถูก block และ chain ที่ช้าที่สุด
-
-## Skills และ subagents
-
-- **Claude**: ใช้ `Skill` และ `Agent` ได้ จาก `.claude/skills`, `.claude/agents` ของ repo เป้าหมาย, `~/.claude/` และ `shared/skills`, `shared/agents` ของ agent-duo (เรียกเป็น `shared:<ชื่อ>`) subagent ได้สิทธิ์ไม่เกิน agent ที่เรียกมัน
-- **Codex**: อ่าน `.agents/skills` ของ repo เป้าหมายและ `~/.codex/skills` เอง
-  - `shared/skills` ถูกคัดลอกเข้า `<workdir>/.agents/skills/` ตอน Codex เริ่ม turn (ถ้า repo มี skill ชื่อเดียวกัน ใช้ของ repo) แล้วลบออกก่อน diff/merge และตอนจบ session จึงไม่หลุดเข้า repo คุณ
-  - `shared/agents/*.md` (รูปแบบเดียวกับ Claude: frontmatter `name`, `description` + เนื้อหาเป็น prompt) ถูกแปลงเป็น role ของ Codex เรียกผ่าน `spawn_agent` ด้วย `agent_type` ได้ ช่อง `tools`/`model` ไม่ใช้ และ role ได้ sandbox เดียวกับ agent ที่เรียก
-- repo เป้าหมายที่เป็น git: worktree มีแค่ไฟล์ที่ commit แล้ว skill ที่ยังไม่ commit จะไม่เห็น
+แท็บ **timeline**: แท่งทึบคือช่วงทำงาน ลายเฉียงคือช่วงรอ เส้นประคือจุดที่แตก sub เส้นม่วงคือข้อความระหว่าง agent ขีดแดงคือ step ที่ล้มเหลว
 
 ## ทำงานอย่างไร
 
-- agent ทุกตัวได้ MCP server ชื่อ `duo` (`mcp/duo-bridge.mjs`) ซึ่งส่งทุก tool call กลับมาที่ session ทาง HTTP session จึงเป็นผู้ตัดสินทุกอย่าง (ใครแจกงานได้, ความลึก, จำนวน agent, งบประมาณ) และผังถูกต้องเสมอ
+- agent ทุกตัวได้ MCP server ชื่อ `duo` (`agent-duo bridge …` ในไฟล์ exe เดียวกัน) ซึ่งส่งทุก tool call กลับมาที่ session ทาง HTTP session จึงตัดสินทุกอย่าง (ใครแจกงานได้, ความลึก, จำนวน agent, งบ)
   - lead ได้: `propose_split`, `assign`, `spawn_sub`, `wait`, `message`, `inbox`, `status`
   - ทีมและ sub ได้: `spawn_sub` (ถ้ายังไม่ถึงความลึกสูงสุด), `wait`, `message`, `inbox`, `status`
-- สิทธิ์: lead, agent ที่ role มีคำว่า review และ AI ที่คุณเขียนว่าห้ามแก้ **อ่านได้อย่างเดียว** ตัวอื่นแก้ไฟล์และรันคำสั่งได้ตามโหมด
-  - Claude: ทุก Edit/Write/Bash/PowerShell (รวมของ subagent) ผ่าน PreToolUse hook ที่ตรวจโหมดและไฟล์สำคัญ hook ทำงานแม้ `settings.json` ของคุณจะมี allow rule
-  - Codex: sandbox `workspace-write` หรือ `read-only` ตามโหมด
-- พื้นที่ทำงาน (agent ทุกตัวใช้ร่วมกัน):
-  - **โฟลเดอร์เป็น git repo**: worktree ที่ `<repo>/.duo/worktrees/<session>` บน branch `duo/<session>` แล้ว merge เมื่อคุณอนุมัติ
-  - **โฟลเดอร์ทั่วไป**: **สำเนา** ที่ `runs/<session>/workspace` (`node_modules`/`.venv` ใช้ลิงก์ ส่วน `dist`, `build`, `.next` ไม่คัดลอก) แล้วคัดลอกไฟล์ที่เปลี่ยนกลับเมื่อคุณอนุมัติ ถ้าคุณแก้ไฟล์เดียวกันระหว่างนั้น ไฟล์นั้นจะถูกข้ามและแจ้งเป็น conflict
-  - **แก้โฟลเดอร์โดยตรง** (ติ๊ก "edit this folder directly"): ไม่มีขั้นอนุมัติตอนท้าย และย้อนกลับไม่ได้ถ้าโฟลเดอร์ไม่ได้อยู่ใน git
-- ถ้าปิด "Ask me before merging" ระบบ merge หรือคัดลอกกลับให้อัตโนมัติเมื่อ lead จบ turn (ไฟล์สำคัญยังถูกถามเสมอ)
+- **Claude**: `claude -p --output-format stream-json` + `--mcp-config` (bridge) + `--allowedTools` + `--permission-mode dontAsk`, turn ถัดไปใช้ `--resume` ทุก Edit/Write/Bash/PowerShell ผ่าน PreToolUse hook (`agent-duo hook`) ที่ตรวจโหมดและไฟล์สำคัญ
+- **Codex**: `codex exec --json` ตั้ง MCP ผ่าน `-c mcp_servers.duo.*` sandbox `workspace-write` หรือ `read-only` ตามสิทธิ์ turn ถัดไปใช้ `codex exec resume`
+- พื้นที่ทำงาน:
+  - **git repo**: worktree ที่ `<repo>/.duo/worktrees/<session>` บน branch `duo/<session>` merge เมื่อคุณอนุมัติ
+  - **โฟลเดอร์ทั่วไป**: สำเนาที่ `runs/<session>/workspace` (`node_modules`/`.venv` ใช้ junction ส่วน `dist`, `build`, `.next`, `target` ไม่คัดลอก) คัดลอกกลับเมื่ออนุมัติ ไฟล์ที่คุณแก้ซ้ำระหว่างนั้นถูกข้ามและแจ้งเป็น conflict
+  - **แก้โฟลเดอร์โดยตรง**: ไม่มีขั้นอนุมัติตอนท้าย
 - เกินงบเมื่อไหร่ ทุก agent หยุดทันที
-- ทุก event ถูกเก็บใน `runs/<session>/events.jsonl` เปิดดูย้อนหลังได้
+- ทุก event อยู่ที่ `%APPDATA%\agent-duo\runs\<session>\events.jsonl` เปิดดูย้อนหลังได้ (รูปแบบเดียวกับ v0.3 ทุกตัวอักษร)
+- ฟังเฉพาะ `127.0.0.1` ไม่มีระบบ login API รับเฉพาะคำขอจากหน้าเว็บของตัวเอง (ตรวจ Host, Origin และ JSON)
 
-## ตั้งค่าผ่าน env (`.env.local`)
+## ตั้งค่าผ่าน env
 
 | ตัวแปร | ใช้ทำอะไร |
 |---|---|
 | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | ถ้าไม่ได้ login Claude Code / Codex |
-| `CLAUDE_MODEL` / `CODEX_MODEL` | เปลี่ยน model ของ Claude / Codex |
-| `CODEX_USD_PER_MTOK_IN` / `_OUT` | ราคา Codex ต่อ 1M token สำหรับตัวนับค่าใช้จ่าย |
-| `RUNS_DIR` | ที่เก็บ log ของ session (ค่าเริ่มต้น `./runs`) |
+| `CLAUDE_MODEL` / `CODEX_MODEL` | เปลี่ยน model |
+| `CODEX_USD_PER_MTOK_IN` / `_OUT` | ราคา Codex ต่อ 1M token |
+| `RUNS_DIR` | ที่เก็บ session (ค่าเริ่มต้น `%APPDATA%\agent-duo\runs`) |
 | `DUO_HOME` | ที่เก็บ `providers.json` (ค่าเริ่มต้น `~/.agent-duo`) |
+| `DUO_CLAUDE` / `DUO_CODEX` | path ของ `claude.exe` / `codex.exe` ถ้าหาเองไม่เจอ |
+
+skills และ subagents ของ agent-duo: โฟลเดอร์ `shared/` ข้าง ๆ ที่รัน หรือ `%APPDATA%\agent-duo\shared` (Claude โหลดเป็น plugin, Codex ได้สำเนาใน `.agents/skills` ระหว่างทำงาน)
+
+## build เอง
+
+ต้องมี Rust, Node (เฉพาะตอน build หน้าเว็บ) และบน Windows แบบ GNU ต้องมี mingw-w64 (`dlltool`, `windres`) ใน PATH เช่น `winget install BrechtSanders.WinLibs.POSIX.UCRT`
+
+```bash
+cd web && npm ci && npm run build && cd ..   # หน้าเว็บ → web/dist (ถูกฝังใน exe)
+cargo test --workspace                        # ทดสอบทั้งหมด และสร้าง type ของ TS ใน web/src/bindings
+cargo build --release -p agent-duo            # → target/release/agent-duo.exe
+```
+
+แอป desktop (ต้องมี Node สำหรับ Tauri CLI):
+
+```bash
+cd desktop && npm ci
+npx tauri dev                 # เปิดแอปจากโค้ด
+npx tauri build               # installer ของเครื่องนี้ → target/release/bundle/
+```
+
+- installer ของ macOS ต้อง build บน Mac (หรือใช้ GitHub Actions) Windows build ข้าม Mac ไม่ได้
+- build บน Windows แบบ GNU ต้องวาง `WebView2Loader.dll` (อยู่ใน `target/release/`) ไว้ข้าง exe ส่วน build แบบ MSVC (ใน GitHub Actions) ลิงก์ไว้ในตัวแล้ว
+
+พัฒนาหน้าเว็บ: `cargo run -p agent-duo -- --no-open` แล้ว `cd web && npm run dev` (http://localhost:5173 proxy `/api` ไปที่พอร์ต 3000)
+
+push tag `v*` ขึ้น GitHub แล้ว `.github/workflows/release.yml` จะทดสอบ แล้ว build บน Windows และ macOS: installer ของแอป desktop (`.exe`/`.msi`, `.dmg` แบบ universal) และ `agent-duo` command-line ทั้งสองระบบ ใส่ไว้ใน draft release (ถ้าตั้ง secrets `APPLE_*` ไว้ แอป macOS จะถูก sign และ notarize)
 
 ## โครงสร้าง
 
 ```
-lib/session.ts          หัวใจ: agent tree, เครื่องมือ duo, การอนุมัติ, โหมด, ไฟล์สำคัญ, คำสั่ง, ขีดจำกัด, merge
-lib/prompts.ts          prompt ของ lead / สมาชิก / การส่งต่อ lead (แก้ตรงนี้เพื่อเปลี่ยนพฤติกรรม)
-lib/runners/            claude.ts · codex.ts · mock.ts  (แปลงผลของแต่ละ SDK เป็น event, permission gate)
-lib/providers.ts        AI เจ้าอื่น: ที่เก็บ key, ตรวจค่า, ทดสอบการเชื่อมต่อ
-lib/shared.ts           ส่ง shared/skills และ shared/agents ให้ Claude และ Codex
-lib/git.ts              worktree, diff, commit, merge, คืนค่าไฟล์
-lib/workspace-copy.ts   โหมดสำเนาสำหรับโฟลเดอร์ที่ไม่ใช่ git
-mcp/duo-bridge.mjs      MCP server (stdio) ที่ทุก agent ใช้
-app/api/sessions/...    สร้าง session, SSE events, input, approvals, tool (ให้ bridge เรียก)
-app/api/providers/...   เพิ่ม/แก้/ลบ/ทดสอบ AI เจ้าอื่น (ไม่ส่ง key เต็มกลับ)
-components/duo/         start-form · providers · session-view · chat · tree · timeline · reduce
-shared/                 skills/ และ agents/ ที่ทุก agent ใช้ร่วมกัน
-docs/superpowers/specs/ เอกสารออกแบบ
+core/src/types.rs       event และ config (serde + ts-rs → web/src/bindings)
+core/src/session.rs     หัวใจ: agent tree, เครื่องมือ duo, การอนุมัติ, โหมด, ไฟล์สำคัญ, คำสั่ง, ขีดจำกัด, merge
+core/src/prompts.rs     prompt ของ lead / สมาชิก / การส่งต่อ lead
+core/src/runners/       mock · claude · codex · proc (หา CLI, อ่าน JSONL, job object)
+core/src/git.rs         worktree, diff, commit, merge, คืนค่าไฟล์ (git command line)
+core/src/copy.rs        โหมดสำเนาสำหรับโฟลเดอร์ที่ไม่ใช่ git
+core/src/providers.rs   AI เจ้าอื่น
+core/tests/             flow.rs (mock ครบลูป, /kill, งบ, จำนวน agent) · workspace.rs (copy, git) · fixtures (events.jsonl จาก v0.3)
+server/src/api.rs       axum: sessions, SSE, input, approvals, tool, gate, providers + หน้าเว็บที่ฝังไว้ (rust-embed)
+server/src/bridge.rs    `bridge` (MCP ผ่าน rmcp) และ `hook`
+server/src/main.rs      เปิด server / `doctor`
+web/                    React + Vite (หน้า / และ /s/:id)
+desktop/                แอป Tauri: เปิด engine ในโปรเซสแล้วแสดงหน้าเว็บในหน้าต่าง (src/main.rs, tauri.conf.json, icons/)
 ```
 
-## วิดีโอ demo
+## สิ่งที่ยังต่างจากเวอร์ชัน TypeScript
 
-`video/` คือโปรเจกต์ Remotion ของวิดีโอ demo 90 วินาที (ข้อความไทย ไม่มีเสียง)
-
-```bash
-cd video && npm install
-npm run studio                                   # ดูและแก้ใน browser
-npm run render                                   # → video/out/agent-duo-v0.3.mp4
-node scripts/capture.mjs http://localhost:3125   # ถ่ายภาพหน้าจอใหม่จาก server ที่ใช้ข้อมูล demo
-```
-
-## ข้อควรรู้
-
-- ทดสอบแล้ว: mock mode ครบทุก flow และ Claude ของจริงในเรื่อง ไฟล์สำคัญ, การขออนุมัติคำสั่ง และด่านตอน merge ส่วน Codex ของจริงกับโหมดใหม่ และ AI เจ้าอื่นของจริง ยังไม่ได้ทดสอบ ควรลองกับ repo เล็กก่อน
-- agent หลายตัวแก้ worktree เดียวกันพร้อมกัน ถ้าแบ่งงานให้แตะไฟล์เดียวกันอาจชนกันได้ ให้ lead แบ่งตามไฟล์ (prompt บอกไว้แล้ว)
-- session อยู่ในหน่วยความจำของ server ถ้า restart ระหว่างทำงาน session จะหยุด (ประวัติยังดูได้)
-- ใช้บนเครื่องตัวเองเท่านั้น ไม่มีระบบ login อย่าเปิดให้เข้าถึงจากอินเทอร์เน็ต
-- `components/ui/number-ticker.tsx` มาจาก affectUI (MIT)
+- **แอป macOS ยังไม่ได้รันจริง**: โค้ดของ engine และ server ผ่านการ type-check สำหรับ macOS แล้ว แต่ตัวแอปต้อง build บน Mac หรือ GitHub Actions และยังไม่ได้เปิดบน Mac จริง
+- **ยังไม่ได้ทดสอบกับ agent จริง** (ขั้นที่ 6): โค้ด Claude/Codex runner, bridge และ hook เขียนครบและ `doctor` ผ่าน แต่ยังไม่ได้รันลูปจริงกับโฟลเดอร์ ควรลองกับ repo เล็กก่อน
+- Claude เรียกผ่าน CLI แทน Agent SDK: ด่านอนุมัติเป็น hook แบบ command (`agent-duo hook`) แทน callback ในโปรเซส ถ้าเรียก session ไม่ได้ hook จะ**ปฏิเสธ** (fail closed) และ timeout ของ MCP tool ตั้งผ่าน `MCP_TOOL_TIMEOUT`
+- Codex ใช้ `--json` (SDK เดิมใช้ `--experimental-json`)
+- session อยู่ที่ `%APPDATA%\agent-duo\runs` แทน `./runs` session เก่าไม่ถูกย้ายให้ (คัดลอกโฟลเดอร์เข้าไป หรือตั้ง `RUNS_DIR`)
+- API ทุกตัวที่หน้าเว็บใช้ตรวจ Host/Origin/JSON (เดิมตรวจเฉพาะ providers) และ bridge เรียกกลับที่ `127.0.0.1:<port>` เสมอ
+- `maxDepth` / `maxAgents` ที่เป็นทศนิยมถูกปัดลง (เดิมเก็บเป็นทศนิยม)
+- โหมดสำเนาใช้ hash 64-bit ในหน่วยความจำแทน sha1 (ผลเหมือนกัน)
+- โค้ด Next.js เดิม (`app/`, `components/`, `lib/`, `mcp/`) ยังอยู่ใน repo เพื่อใช้เทียบ ลบได้เมื่อมั่นใจเวอร์ชัน Rust แล้ว

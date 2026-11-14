@@ -6,3 +6,10 @@ next-env.d.ts
 *.tsbuildinfo
 video/node_modules
 video/out
+
+# rust
+/target
+/web/node_modules
+/web/dist
+/desktop/node_modules
+/desktop/gen

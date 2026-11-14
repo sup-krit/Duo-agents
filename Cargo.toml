@@ -1,0 +1,12 @@
+[workspace]
+resolver = "3"
+members = ["core", "server", "desktop"]
+
+[workspace.package]
+version = "0.4.0"
+edition = "2024"
+
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 4

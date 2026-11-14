@@ -1,0 +1,20 @@
+[package]
+name = "agent-duo-desktop"
+version.workspace = true
+edition.workspace = true
+description = "Agent Duo desktop app"
+
+[[bin]]
+name = "agent-duo-desktop"
+path = "src/main.rs"
+
+[dependencies]
+agent-duo = { version = "0.4.0", path = "../server" }
+anyhow = "1.0.104"
+duo-core = { version = "0.4.0", path = "../core" }
+tauri = { version = "2.12.5", features = [] }
+tauri-plugin-notification = "2.8.1"
+tokio = { version = "1.54.1", features = ["full"] }
+
+[build-dependencies]
+tauri-build = { version = "2.7.4", features = [] }
