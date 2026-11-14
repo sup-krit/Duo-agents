@@ -67,8 +67,11 @@ pub async fn commit_all(dir: &Path, message: &str) -> Result<bool> {
     Ok(true)
 }
 
+/// The merge commit is yours; without a git identity on this machine it is signed agent-duo.
 pub async fn merge_branch(root: &Path, branch: &str) -> Result<()> {
-    git(root, &["merge", "--no-ff", "--no-edit", branch]).await.map(|_| ())
+    let has_id = git(root, &["config", "user.email"]).await.is_ok_and(|e| !e.is_empty());
+    let id: &[&str] = if has_id { &[] } else { &["-c", "user.name=agent-duo", "-c", "user.email=agent-duo@localhost"] };
+    git(root, &[id, &["merge", "--no-ff", "--no-edit", branch]].concat()).await.map(|_| ())
 }
 
 /// Paths changed in the worktree since it was created (added, modified, deleted).
